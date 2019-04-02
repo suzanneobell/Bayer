@@ -1124,7 +1124,7 @@ tab abortion_14 if `var'==1
 tab delivery_14 if `var'==1
 
 *******************************************************************************
-* TABLE. MEDICAL CONDITIONS 
+* TABLE 2. MEDICAL CONDITIONS 
 *******************************************************************************
 
 * Cardiovascular disease
@@ -1266,6 +1266,7 @@ tabstat mo_arep_14_sum_id if `var'==1, statistics(sum)
 
 set more off
 
+* Original contraceptive use variables
 foreach v in anyst_1mo_ep14_sum_id any_1mo_ep14_sum_id larc_1mo_ep14_sum_id	larc_12mo_ep14_sum_id {	
 	* 2014
 	tab age5_14 `v' if `var'==1 , row chi2 nokey
@@ -1286,12 +1287,34 @@ foreach v in anyst_1mo_ep14_sum_id any_1mo_ep14_sum_id larc_1mo_ep14_sum_id	larc
 	tab nqf_nconditions_14 `v' if `var'==1 , row chi2 nokey
 	tab `v'  if `var'==1 
 	}
-
-	
+/*	
+* NQF contraceptive use variables
+foreach v in nqf_any_ever14 nqf_anyreversible_ever14 nqf_larc_ever14 {	
+	* 2014
+	tab age5_14 `v' if `var'==1 , row chi2 nokey
+	tab covtypev2 `v' if `var'==1 , row chi2 nokey
+	tab rucas2014 `v' if `var'==1 , row chi2 nokey
+	tab hhinc2014_5 `v' if `var'==1 , row chi2 nokey
+	tab cv_disease_ever14 `v' if `var'==1 , row chi2 nokey
+	tab cv_risk_ever14 `v' if `var'==1 , row chi2 nokey
+	tab diabetes_ever14 `v' if `var'==1 , row chi2 nokey
+	tab htn_ever14 `v' if `var'==1 , row chi2 nokey
+	tab obesity_ever14 `v' if `var'==1 , row chi2 nokey
+	tab vte_ever14 `v' if `var'==1 , row chi2 nokey
+	tab pid_ever14 `v' if `var'==1 , row chi2 nokey	
+	tab asthma_ever14 `v' if `var'==1 , row chi2 nokey
+	tab autoimmune_ever14 `v' if `var'==1 , row chi2 nokey
+	tab depression_ever14 `v' if `var'==1 , row chi2 nokey	
+	tab anxiety_ever14 `v' if `var'==1 , row chi2 nokey	
+	tab nqf_nconditions_14 `v' if `var'==1 , row chi2 nokey
+	tab `v'  if `var'==1 
+	}
+*/	
 *******************************************************************************
 * TABLE 5. BIVARIABLE MODELS
 *******************************************************************************
 	
+* Original contraceptive use variables
 foreach y in anyst_1mo_ep14_sum_id any_1mo_ep14_sum_id larc_1mo_ep14_sum_id larc_12mo_ep14_sum_id {
 	logistic `y' b2.age5_14 if `var'==1
 	foreach x in age5_14 covtypev2 rucas2014 hhinc2014_5 cv_disease_ever14 cv_risk_ever14 ///
@@ -1301,7 +1324,19 @@ foreach y in anyst_1mo_ep14_sum_id any_1mo_ep14_sum_id larc_1mo_ep14_sum_id larc
 		}
 	logistic `y' hhinc2014_5 if `var'==1
 	}
+
+* NQF contraceptive use variables
+foreach y in nqf_any_ever14 nqf_anyreversible_ever14 nqf_larc_ever14 {
+	logistic `y' b2.age5_14 if `var'==1
+	foreach x in age5_14 covtypev2 rucas2014 hhinc2014_5 cv_disease_ever14 cv_risk_ever14 ///
+		diabetes_ever14 htn_ever14 obesity_ever14 vte_ever14 pid_ever14 ///
+		asthma_ever14 autoimmune_ever14 depression_ever14 anxiety_ever14 nqf_nconditions_14 {
+		logistic `y' i.`x' if `var'==1
+		}
+	logistic `y' hhinc2014_5 if `var'==1
+	}
 }	
+
 capture log close
 log using "logs\MHCC_BayerPatientAnalysis_Complete_INTERACTION_TABLES_$S_DATE.log", replace
 
@@ -1316,7 +1351,22 @@ recode age5_14 (0/3=0) (4/5=1), gen(age35to44)
 tab age5_14 age35to44, miss
 
 foreach var in eligible_14 {
+
+* Original contraceptive use variables
 foreach y in anyst_1mo_ep14_sum_id larc_1mo_ep14_sum_id larc_12mo_ep14_sum_id {
+	foreach x in cv_disease_ever14 cv_risk_ever14 ///
+		diabetes_ever14 htn_ever14 obesity_ever14 vte_ever14 pid_ever14 ///
+		asthma_ever14 autoimmune_ever14 depression_ever14 anxiety_ever14{
+		logistic `y' i.`x'##age34to44 if `var'==1
+		lincom 1.`x' + 1.`x'#1.age34to44
+		}
+	logistic `y' i.nqf_nconditions_14##age34to44 if `var'==1
+	lincom 1.nqf_nconditions_14 + 1.nqf_nconditions_14#1.age34to44
+	lincom 2.nqf_nconditions_14 + 2.nqf_nconditions_14#1.age34to44
+	}
+	
+* NQF contraceptive use variables
+foreach y in nqf_any_ever14 nqf_anyreversible_ever14 nqf_larc_ever14 {
 	foreach x in cv_disease_ever14 cv_risk_ever14 ///
 		diabetes_ever14 htn_ever14 obesity_ever14 vte_ever14 pid_ever14 ///
 		asthma_ever14 autoimmune_ever14 depression_ever14 anxiety_ever14{
