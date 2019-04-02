@@ -842,7 +842,7 @@ replace cvrisk_other_ever14=1 if cv_disease_ever14==1 & (diabetes_ever14==0 & ht
 gen cvrisk_other_ever13=0 if cv_disease_ever13!=.
 replace cvrisk_other_ever13=1 if cv_disease_ever13==1 & (diabetes_ever13==0 & htn_ever13==0 & obesity_ever13==1)
 
-*Code variable for multiple conditions:
+* Code variable for multiple conditions:
 capture drop nconditions_14
 gen nconditions_14=0
 foreach v of varlist cv_disease_ever14 cvrisk_other_ever14 htn_ever14 vte_ever14 obesity_ever14 ///
@@ -861,21 +861,21 @@ foreach v of varlist cv_disease_ever14 cvrisk_other_ever14 htn_ever14 vte_ever14
 replace nqf_nconditions_14=2 if nqf_nconditions_14>1 & nqf_nconditions_14!=.
 	label val nqf_nconditions_14 nconditions
 
-*Code variables to compare medical conditions to "healthy" cohort
-foreach v of varlist cv_disease_ever14 cv_risk_ever14 htn_ever14 vte_ever14 obesity_ever14 ///
+* Code variables to compare medical conditions to "healthy" cohort
+foreach v of varlist cv_disease_ever14 cvrisk_other_ever14 htn_ever14 vte_ever14 obesity_ever14 ///
 	asthma_ever14 autoimmune_ever14 depression_ever14 anxiety_ever14 diabetes_ever14 pid_ever14 {
 	capture drop `v'vhc
 	gen `v'vhc=.
 	replace `v'vhc=1 if `v'==1
-	replace `v'vhc=0 if `v'vhc==. & nconditions_14==0
+	replace `v'vhc=0 if `v'vhc==. & nqf_nconditions_14==0
 	}
 
-foreach v of varlist cv_disease_ever14 cv_risk_ever14 htn_ever14 vte_ever14 obesity_ever14 ///
+foreach v of varlist cv_disease_ever14 cvrisk_other_ever14 htn_ever14 vte_ever14 obesity_ever14 ///
 	asthma_ever14 autoimmune_ever14 nqf_depression_ever14 nqf_anxiety_ever14 diabetes_ever14 pid_ever14 {
 	capture drop `v'vhc
 	gen `v'vhc=.
 	replace `v'vhc=1 if `v'==1
-	replace `v'vhc=0 if `v'vhc==. & nconditions_14==0
+	replace `v'vhc=0 if `v'vhc==. & nqf_nconditions_14==0
 	}
 	
 tab	cv_disease_ever14 cv_disease_ever14vhc, miss
@@ -1044,6 +1044,9 @@ tab cv_disease_ever14 if total_14==1
 * Cardiovascular risk
 tab cv_risk_ever14 if total_14==1
 
+* Other cardiovascual risk
+tab cvrisk_other_ever14 if total_14==1
+
 * Diabetes
 tab diabetes_ever14 if total_14==1
 
@@ -1071,8 +1074,8 @@ tab anxiety_ever14 if total_14==1
 * Depression
 tab depression_ever14 if total_14==1
 
-*Multiple conditions
-tab nconditions_14 if total_14==1
+* Multiple conditions
+tab nqf_nconditions_14 if total_14==1
 */
 
 *******************************************************************************
@@ -1185,8 +1188,8 @@ tab anxiety_ever14 if eligible_14==1
 *tab depression_ever13 if eligible_13==1
 tab depression_ever14 if eligible_14==1
 
-*Multiple conditions
-tab nconditions_14 if eligible_14==1
+* Multiple conditions
+tab nqf_nconditions_14 if eligible_14==1
  
 
 *******************************************************************************
@@ -1274,7 +1277,6 @@ tab nconditions_14 if eligible_14==1
 	tabstat mo_arep_14_sum_id if eligible_14==1, by(covtypev2) statistics(sum)
 	
 * Rurality
-
 foreach me in anyst nonlarc larc iudall implant_c  {
 	tabstat `me'_ep14_sum_id if eligible_14==1, by(rucas2014) statistics(sum)
 	}
@@ -1288,9 +1290,8 @@ foreach me in ster  {
 tabstat mo_arep_13_sum_id if eligible_13==1, by(rucas2013) statistics(sum)
 tabstat mo_arep_14_sum_id if eligible_14==1, by(rucas2014) statistics(sum)
 	*/
+	
 * Median household income
-
-
 foreach me in anyst nonlarc larc iudall implant_c  {
 	tabstat `me'_ep14_sum_id if eligible_14==1, by(hhinc2014_5) statistics(sum)
 	}
@@ -1306,9 +1307,8 @@ tabstat mo_arep_14_sum_id if eligible_14==1, by(hhinc2014_5) statistics(sum)
 	*/
 	
 * Medical conditions
-
 foreach mc in cv_disease_ever cv_risk_ever diabetes_ever htn_ever obesity_ever cvrisk_other_ever vte_ever pid_ever ///
-	asthma_ever autoimmune_ever mental_ever depression_ever anxiety_ever nconditions_ {
+	asthma_ever autoimmune_ever mental_ever depression_ever anxiety_ever nqf_nconditions_ {
 	foreach me in anyst nonlarc larc iudall implant_c {
 		tabstat `me'_ep14_sum_id if eligible_14==1, by(`mc'14) statistics(sum)
 		}
@@ -1317,7 +1317,7 @@ foreach mc in cv_disease_ever cv_risk_ever diabetes_ever htn_ever obesity_ever c
 */
 
 foreach mc in cv_disease_ever cv_risk_ever diabetes_ever htn_ever obesity_ever cvrisk_other_ever vte_ever pid_ever ///
-	asthma_ever autoimmune_ever mental_ever depression_ever anxiety_ever nconditions_ {
+	asthma_ever autoimmune_ever mental_ever depression_ever anxiety_ever nqf_nconditions_ {
 	foreach me in ster {
 		tabstat `me'_ep14_sum_id if eligible_14==1, by(`mc'14) statistics(sum)
 		}
@@ -1325,7 +1325,7 @@ foreach mc in cv_disease_ever cv_risk_ever diabetes_ever htn_ever obesity_ever c
 
 * Number of conditions
 foreach me in anyst nonlarc larc iudall implant_c ster {
-	tabstat `me'_ep14_sum_id if eligible_14==1, by(nconditions_14) statistics(sum)
+	tabstat `me'_ep14_sum_id if eligible_14==1, by(nqf_nconditions_14) statistics(sum)
 	}
 	
 * Total
@@ -1358,7 +1358,7 @@ foreach v in anyst_1mo_ep14_sum_id any_1mo_ep14_sum_id larc_1mo_ep14_sum_id	larc
 	tab autoimmune_ever14 `v' if eligible_14==1 , row chi2 nokey
 	tab depression_ever14 `v' if eligible_14==1 , row chi2 nokey	
 	tab anxiety_ever14 `v' if eligible_14==1 , row chi2 nokey	
-	tab nconditions_14 `v' if eligible_14==1 , row chi2 nokey
+	tab nqf_nconditions_14 `v' if eligible_14==1 , row chi2 nokey
 	tab `v'  if eligible_14==1 
 	}
 
@@ -1371,7 +1371,7 @@ foreach y in anyst_1mo_ep14_sum_id any_1mo_ep14_sum_id larc_1mo_ep14_sum_id larc
 	logistic `y' b2.age5_14 if  eligible_14==1
 	foreach x in age5_14 covtypev2 rucas2014 hhinc2014_5 cv_disease_ever14 cv_risk_ever14 ///
 		diabetes_ever14 htn_ever14 obesity_ever14 vte_ever14 pid_ever14 ///
-		asthma_ever14 autoimmune_ever14 depression_ever14 anxiety_ever14 nconditions_14 {
+		asthma_ever14 autoimmune_ever14 depression_ever14 anxiety_ever14 nqf_nconditions_14 {
 		logistic `y' i.`x' if  eligible_14==1
 		}
 	logistic `y' hhinc2014_5 if  eligible_14==1
@@ -1398,9 +1398,9 @@ foreach y in anyst_1mo_ep14_sum_id larc_1mo_ep14_sum_id larc_12mo_ep14_sum_id {
 		logistic `y' i.`x'##age34to44 if  eligible_14==1
 		lincom 1.`x' + 1.`x'#1.age34to44
 		}
-	logistic `y' i.nconditions_14##age34to44 if  eligible_14==1
-	lincom 1.nconditions_14 + 1.nconditions_14#1.age34to44
-	lincom 2.nconditions_14 + 2.nconditions_14#1.age34to44
+	logistic `y' i.nqf_nconditions_14##age34to44 if  eligible_14==1
+	lincom 1.nqf_nconditions_14 + 1.nqf_nconditions_14#1.age34to44
+	lincom 2.nqf_nconditions_14 + 2.nqf_nconditions_14#1.age34to44
 	}
 	
 /*
