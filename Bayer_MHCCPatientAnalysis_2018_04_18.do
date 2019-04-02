@@ -49,7 +49,7 @@ mental_health migraine_with_aura obesity patch pid pop_pill ///
 postabortion postabortion_induced postabortion_spontaneous postpartum pregnant ///
 pulmonary_embolism ring smoking spontaneous_abortion sterilization stroke vte ///
 anxiety depression diabetes using "$datadir/patient.dta", clear
-
+*/
 
 
 ***SUBSET 1% sample for cleaning***
@@ -74,15 +74,19 @@ pulmonary_embolism ring smoking spontaneous_abortion sterilization stroke vte //
 anxiety depression diabetes if inrange(runiform(),0,.01) using "$datadir/patient.dta", clear
 */
 
+* Merge in NQF variables
+merge 1:1 patient_id using "$datadir/nqf_patient.dta"
 
+* Keep only random 1% subset
 
+generate random=runiform()
+keep if random>=0 & random<=.01
+*/
 *******************************************************************************
 * CLEAN UP PROVIDER VARIABLES
 *******************************************************************************
 
 save "$datadir/patient_analysis.dta", replace
-
-
 
 
 
@@ -110,22 +114,39 @@ rename monthly_enrollment_2014 mo_enroll_14
 rename monthly_pharmacy_enrollment_2013 mo_pharm_13
 rename monthly_pharmacy_enrollment_2014 mo_pharm_14
 
-* Generate an ineligible variable by year
+* Generate an ineligible variable by year - ORIGINAL ELIGBILITY
 gen ineligible_13=.
 gen ineligible_14=.
 replace ineligible_13=1 if age_13==14
 replace ineligible_14=1 if age_14==45
 
-* Generate eligible variable by year
-foreach x of numlist 3/4 {
-	gen eligible_1`x'=regexm(mo_enroll_1`x', "111111")
-	replace eligible_1`x'=0 if age_1`x'<15
-	replace eligible_1`x'=0 if age_1`x'>44
-	lab var eligible_1`x' "Eligible in 201`x'"
-}
+* Generate an ineligible variable by year - NQF ELIGBILITY
+gen ineligible_13v2=.
+gen ineligible_14v2=.
+replace ineligible_13v2=1 if age_13==14
+replace ineligible_14v2=1 if age_14==45
 
-replace ineligible_13=2 if eligible_13==0 & ineligible_13==.
-replace ineligible_14=2 if eligible_14==0 & ineligible_14==.
+* Generate eligible variable by year 
+	* Eligibility defined as 6 months continuous enrollmennt - ORIGINAL ELIGIBILITY
+	foreach x of numlist 3/4 {
+		gen eligible_1`x'=regexm(mo_enroll_1`x', "111111")
+		replace eligible_1`x'=0 if age_1`x'<15
+		replace eligible_1`x'=0 if age_1`x'>44
+		lab var eligible_1`x' "Eligible in 201`x' (original)"
+	}
+	replace ineligible_13=2 if eligible_13==0 & ineligible_13==.
+	replace ineligible_14=2 if eligible_14==0 & ineligible_14==.
+		
+	* Eligibility defined as 12 months continuous enrollmennt - NQF ELIGIBILITY
+	foreach x of numlist 3/4 {
+		gen eligible_1`x'v2=regexm(mo_enroll_1`x', "111111111111")
+		replace eligible_1`x'v2=0 if age_1`x'<15
+		replace eligible_1`x'v2=0 if age_1`x'>44
+		lab var eligible_1`x'v2 "Eligible in 201`x' based on 12 months enrollment"
+	}
+	
+	replace ineligible_13v2=2 if eligible_13v2==0 & ineligible_13v2==.
+	replace ineligible_14v2=2 if eligible_14v2==0 & ineligible_14v2==.
 
 * Generate dichotomous month variables for enrollment variables
 foreach var in mo_enroll_13 mo_enroll_14 mo_pharm_13 mo_pharm_14 {
@@ -135,7 +156,7 @@ destring `var'_`num', replace
 }
 }
 
-* Generate dichotomous month variables for combine enrollment and pharm coverage variables
+* Generate dichotomous month variables for combined enrollment and pharm coverage variables
 foreach y of numlist 3/4 {
 foreach x of numlist 1/12 {
 gen mo_ep_1`y'_`x'=1 if mo_enroll_1`y'_`x'==1 & mo_pharm_1`y'_`x'==1
@@ -154,11 +175,35 @@ foreach x of numlist 3/4 {
 	lab var mo_ep_1`x'_sum_id "Total number of months enrolled with pharmacy coverage in 201`x' for each patient"
 }
 
+* Define pharmacy eligibility as 1 month continuous pharmacy coverage - ORIGINAL ELIGIBILITY
+foreach x of numlist 3/4 {
+	gen pharm_eligible_1`x'=regexm(mo_pharm_1`x', "1")
+	replace pharm_eligible_1`x'=0 if age_1`x'<15
+	replace pharm_eligible_1`x'=0 if age_1`x'>44
+	lab var pharm_eligible_1`x' "Eligible pharmacy in 201`x'"
+}
 
+* Define pharmacy eligibility as 12 months continuous pharmacy coverage - NQF ELIGIBILITY
+foreach x of numlist 3/4 {
+	gen pharm_eligible_1`x'v2=regexm(mo_pharm_1`x', "111111111111")
+	replace pharm_eligible_1`x'v2=0 if age_1`x'<15
+	replace pharm_eligible_1`x'v2=0 if age_1`x'>44
+	lab var pharm_eligible_1`x'v2 "Eligible pharmacy in 201`x' based on 12 months coverage"
+}
+*/
+* Generate combined 12 month enrollment and pharmacy coverage variable - ORIGINAL ELIGIBILITY
+foreach x of numlist 3/4 {
+	gen ep_eligible_1`x'=1 if eligible_1`x'==1 & pharm_eligible_1`x'==1
+}
+
+* Generate combined 12 month enrollment and pharmacy coverage variable - NQF ELIGIBILITY
+foreach x of numlist 3/4 {
+	gen ep_eligible_1`x'v2=1 if eligible_1`x'v2==1 & pharm_eligible_1`x'v2==1
+}
+	
 **ADD IN AT RISK VARIABLE HERE**
 * Create ineligible (not at risk of pregnancy) months variables due to hysterectomy or pregnancy
 *hyst
-
 gen hyst_1=substr(hysterectomy,1,1)
 destring hyst_1, replace
 foreach num of numlist 2/60 {
@@ -168,17 +213,34 @@ foreach num of numlist 2/60 {
 	replace hyst_`num'=1 if hyst_`num'==0 & hyst_`x'==1
 	}
 
+*infecund - USING NQF_INFECUND VARIABLE
+gen infecund_1=substr(nqf_infecund,1,1)
+destring infecund_1, replace
+foreach num of numlist 2/60 {
+	gen infecund_`num'=substr(nqf_infecund,`num',1)
+	destring infecund_`num', replace
+	local x = `num'-1
+	replace infecund_`num'=1 if infecund_`num'==0 & infecund_`x'==1
+	}
+	
 *pregnant
 foreach num of numlist 37/60 {
 	gen preg_`num'=substr(pregnant,`num',1)
 	destring preg_`num', replace
 	}
 	
-*generate set of atrisk = at risk monthly variables
+*generate set of atrisk = at risk monthly variables - USE NEW INFECUND VARIABLE CREATE FROM NQF_INFECUND
 foreach num of numlist 37/60 {
 	gen atrisk_`num'=1
-	replace atrisk_`num'=0 if preg_`num'==1 | hyst_`num'==1
+	*replace atrisk_`num'=0 if preg_`num'==1 | hyst_`num'==1
+	replace atrisk_`num'=0 if preg_`num'==1 | infecund_`num'==1
 }
+* Include nqf_infecund information - if not pregnant or hysterectomy that month but nqf_infecund is 1 then code all subsequent as 1s
+* Re-run our analysss with exclusion of these additional infecund women
+
+* NQF variables use for analysis with 12 month enrollment/12 pharmacy and look at any use
+* Do sensitivity analysis of multivariate analysis of using LARC or MMEC in last 12 months when use updated NQF depression and anxiety variables
+
 local x = 0
 foreach num of numlist 37/48 {
 	local ++x
@@ -189,6 +251,10 @@ foreach num of numlist 49/60 {
 	local ++x
 	rename atrisk_`num' atrisk_14_`x'
 }
+
+* Generate at risk variable for entire 12 months that is 1 if at risk the entire time
+gen atrisk_all_14=1 if atrisk_14_1==1 & atrisk_14_2==1 & atrisk_14_3==1 & atrisk_14_4==1 & atrisk_14_5==1 & atrisk_14_6==1 & atrisk_14_7==1 	///
+& atrisk_14_8==1 & atrisk_14_9==1 & atrisk_14_10==1 & atrisk_14_11==1 & atrisk_14_12==1
 
 /*
 *generate set of atriske = at risk monthly variables during enrolled months
@@ -209,14 +275,13 @@ foreach y of numlist 1/12 {
 	}
 }
 
-
-label define ineligible 1 "age <15" 2 "<60mo continuous enrl" 3 "no at risk pharm months"
+label define ineligible 1 "age <15" 2 "<6 mo continuous enrl" 3 "no at risk pharm months"
 label val ineligible_13 ineligible
 label val ineligible_14 ineligible
 tab1 ineligible_13 ineligible_14, miss
 
 
-/*	
+/*
 * Sum number of months enrolled and at risk (are)
 foreach x of numlist 3/4 {
 	egen mo_are_1`x'_sum_id=rowtotal(atrisk_1`x'_1-atriske_1`x'_12)
@@ -230,27 +295,35 @@ foreach x of numlist 3/4 {
 	lab var mo_arep_1`x'_sum_id "Total number of months enrolled with pharmacy and at risk in 201`x' for each patient"
 }
 
-* Update eligible variables to exclude women never at risk of pregnancy with pharm coverage
-foreach x of numlist 3/4 {
-	replace eligible_1`x'=0 if mo_arep_1`x'_sum_id==0 | mo_arep_1`x'_sum_id==.
-	}
+* Update eligibility variables to exclude women not at risk 
+	* Update original 6 enrollment months/1 pharmacy month eligible variables to exclude women never at risk of pregnancy with pharm coverage
+	foreach x of numlist 3/4 {
+		replace eligible_1`x'=0 if mo_arep_1`x'_sum_id==0 | mo_arep_1`x'_sum_id==.
+		}		
+	replace ineligible_13=3 if eligible_13==0 & ineligible_13==.
+	replace ineligible_14=3 if eligible_14==0 & ineligible_14==.
 
+	tab1 ineligible_13 ineligible_14, miss	
+
+	* Update 12 enrollment months/12 pharmacy months eligible variables to exclude women never at risk of pregnancy with pharm coverage
+	foreach x of numlist 4 {
+		replace eligible_1`x'v2=1 if ep_eligible_1`x'v2==1 & atrisk_all_1`x'==1
+		}
 	
-replace ineligible_13=3 if eligible_13==0 & ineligible_13==.
-replace ineligible_14=3 if eligible_14==0 & ineligible_14==.
-
-tab1 ineligible_13 ineligible_14, miss	
+	replace ineligible_14v2=3 if eligible_14v2==1 & ineligible_14v2==. & atrisk_all_14==1
 
 *tab mo_ep_13_sum_id if ineligible_13==3
 replace ineligible_13=4 if ineligible_13==3 & mo_ep_13_sum_id!=0
 replace ineligible_14=4 if ineligible_14==3 & mo_ep_14_sum_id!=0
 label define ineligible 1 "age <15 or >44" 2 "<6mo continuous enrl" 3 "never pharmacy coverage" 4 "never at risk of pregnancy", modify
-tab1 ineligible_13 ineligible_14, miss	
+tab1 ineligible_13 ineligible_14, miss
 
-	
+replace ineligible_14v2=4 if ineligible_14v2==3 & mo_ep_14_sum_id!=0
+label define ineligiblev2 1 "age <15 or >44" 2 "<12mo continuous enrl" 3 "never pharmacy coverage" 4 "never at risk of pregnancy", modify
+lab val ineligible_14v2 ineligiblev2
+
 *save "$datadir/temp3.dta", replace	
 *use "$datadir/temp3.dta", clear
-
 
 * Rename variables
 rename copper_iud_inserted cop_iud
@@ -281,8 +354,35 @@ rename mental_health mental
 rename migraine_with_aura migrain
 rename pulmonary_embolism pul_emb
 rename sterilization ster
+rename nqf_implant_insertion nqf_implant
+rename nqf_iud_insertion nqf_iud
+rename nqf_injection nqf_inject
+rename nqf_steriliztion nqf_ster
 
-* Generate dichotomous month variables for health conditions and contraception
+* NQF CONTRACEPTIVE USE VARIABLES
+	* Generate dichotomous variable for 12 months string of 2014 and whether ever used in 2014 by method
+	foreach var in nqf_ster nqf_implant nqf_iud nqf_oral_pill nqf_inject nqf_patch nqf_ring {
+		gen `var'_14=substr(`var',49,60)
+		gen `var'_ever14=regexm(`var'_14,"1")
+		*gen `var'_all14=regexm(`var'_14,"111111111111")
+		lab var `var'_14 "Monthly use of `var' in 2014"
+		lab var `var'_ever14 "Whether ever used `var' in 2014"
+		*lab var `var'_all14 "Whether used `var' for all of 2014"
+		}
+		
+	* Generate dichotomous variable for whether used LARC in 2014
+	gen nqf_larc_ever14=0
+	replace nqf_larc_ever14=1 if nqf_iud_ever14==1 | nqf_implant_ever14==1
+		
+	* Generate dichotomous variable for whether used any reversible method in 2014
+	gen nqf_anyreversible_ever14=0
+	replace nqf_anyreversible_ever14=1 if nqf_iud_ever14==1 | nqf_implant_ever14==1 | nqf_inject_ever14==1 | nqf_oral_pill_ever14==1 | nqf_patch_ever14==1 | nqf_ring_ever14==1
+
+	* Generate dichotomous variable for whether used any method (including sterilization) in 2014
+	gen nqf_any_ever14=0
+	replace nqf_any_ever14=1 if nqf_ster_ever14==1 | nqf_iud_ever14==1 | nqf_implant_ever14==1 | nqf_inject_ever14==1 | nqf_oral_pill_ever14==1 | nqf_patch_ever14==1 | nqf_ring_ever14==1
+
+* Generate dichotomous month variables for contraception
 foreach var in implant implant_re implant_im horm_iud horm_iud_re cop_iud cop_iud_re ec ///
 	coc_pill pop_pill ring patch inject diaphragm iud iud_im iud_sim {
 foreach num of numlist 37/60 {
@@ -301,9 +401,7 @@ foreach num of numlist 2/60 {
 	replace ster_`num'=1 if ster_`num'==0 & ster_`x'==1
 	}
 
-*Generate combined monthly variables for implant, hormonal iud, copper iud, and unknown iud
-
-
+* Generate combined monthly variables for implant, hormonal iud, copper iud, and unknown iud
 foreach var in implant_c horm_iud_c cop_iud_c iud_c {
 	foreach num of numlist 37/60 {
 		gen `var'_`num'=0
@@ -337,8 +435,6 @@ foreach var in iud iud_im iud_sim {
 	}
 
 
-
-	
 save "$datadir/temp2.dta", replace	
 use "$datadir/temp2.dta", clear
 set more off
@@ -384,7 +480,6 @@ set more off
 	}
 
 * Sum person-months across months for 2013 and 2014 among enrolled at risk months with pharmacy coverage
-
 foreach var in implant_c cop_iud_c horm_iud_c iud_c ec coc_pill pop_pill ring patch inject diaphragm larc iudall nonlarc any anyst {
 	local y = 0
 	foreach x of numlist 37/48 {
@@ -419,7 +514,7 @@ foreach var in anyst any larc {
 	}
 
 	
-
+/*
 compress
 save "$datadir/temp7.dta", replace
 
@@ -433,7 +528,7 @@ restore
 merge 1:1 patient_id using "$datadir/newvars_merge.dta", nogen
 save "$datadir/temp7a.dta", replace
 set more off
-
+*/
 
 * Generate dichotomous variables for each health condition by year 
 foreach var in obesity htn smoking cv_disease cv_risk vte asthma {
@@ -443,12 +538,11 @@ foreach var in obesity htn smoking cv_disease cv_risk vte asthma {
 	}
 
 set more off
-foreach var in autoimmune mental anxiety depression diabetes {
+foreach var in autoimmune mental anxiety depression diabetes nqf_anxiety nqf_depression {
 	gen `var'_13=substr(`var',1,48)
 	gen `var'_ever14=regexm(`var',"1")
 	gen `var'_ever13=regexm(`var'_13,"1")
 	}
-
 
 * Generate more conservative dichotomous PID variable by year
 gen pid_only13=substr(pid,37,12)
@@ -457,13 +551,11 @@ gen pid_ever13=regexm(pid_only13,"1")
 gen pid_ever14=regexm(pid_only14,"1")
 
 * Generate diagnoses tobacco use dichotmous variable
-
 foreach var in hx_tobac {
 	gen `var'_13=substr(`var',1,48)
 	gen `var'_ever14=regexm(`var',"1")
 	gen `var'_ever13=regexm(`var'_13,"1")
 	}
-
 
 * Combine smoking variables
 gen smoker_ever13=0 if smoking_ever13!=.
@@ -743,19 +835,33 @@ tabstat hhinc2013 if eligible_13==1, s(min p25 p50 p75 max)
 xtile hhinc2013_5 = hhinc2013, nq(5)
 xtile hhinc2014_5 = hhinc2014, nq(5)
 
+*Generate variable for "other" cardiovascular risk, removing diabetes, hypertension, and obesity
+gen cvrisk_other_ever14=0 if cv_disease_ever14!=.
+replace cvrisk_other_ever14=1 if cv_disease_ever14==1 & (diabetes_ever14==0 & htn_ever14==0 & obesity_ever14==1)
+
+gen cvrisk_other_ever13=0 if cv_disease_ever13!=.
+replace cvrisk_other_ever13=1 if cv_disease_ever13==1 & (diabetes_ever13==0 & htn_ever13==0 & obesity_ever13==1)
 
 *Code variable for multiple conditions:
 capture drop nconditions_14
 gen nconditions_14=0
-foreach v of varlist cv_disease_ever14 htn_ever14 vte_ever14 obesity_ever14 ///
+foreach v of varlist cv_disease_ever14 cvrisk_other_ever14 htn_ever14 vte_ever14 obesity_ever14 ///
 	asthma_ever14 autoimmune_ever14 depression_ever14 anxiety_ever14 diabetes_ever14 {
 	replace nconditions_14=nconditions_14+1 if eligible_14==1 & `v'==1
 	}
 replace nconditions_14=2 if nconditions_14>1 & nconditions_14!=.
 label define nconditions 0 "none/health" 1 "one condition" 2 "more than one"
 	label val nconditions_14 nconditions
+	
+gen nqf_nconditions_14=0
+foreach v of varlist cv_disease_ever14 cvrisk_other_ever14 htn_ever14 vte_ever14 obesity_ever14 ///
+	asthma_ever14 autoimmune_ever14 nqf_depression_ever14 nqf_anxiety_ever14 diabetes_ever14 {
+	replace nqf_nconditions_14=nqf_nconditions_14+1 if eligible_14==1 & `v'==1
+	}
+replace nqf_nconditions_14=2 if nqf_nconditions_14>1 & nqf_nconditions_14!=.
+	label val nqf_nconditions_14 nconditions
 
-*Code variables to compare medical conditions to "healthly" cohort
+*Code variables to compare medical conditions to "healthy" cohort
 foreach v of varlist cv_disease_ever14 cv_risk_ever14 htn_ever14 vte_ever14 obesity_ever14 ///
 	asthma_ever14 autoimmune_ever14 depression_ever14 anxiety_ever14 diabetes_ever14 pid_ever14 {
 	capture drop `v'vhc
@@ -764,12 +870,19 @@ foreach v of varlist cv_disease_ever14 cv_risk_ever14 htn_ever14 vte_ever14 obes
 	replace `v'vhc=0 if `v'vhc==. & nconditions_14==0
 	}
 
+foreach v of varlist cv_disease_ever14 cv_risk_ever14 htn_ever14 vte_ever14 obesity_ever14 ///
+	asthma_ever14 autoimmune_ever14 nqf_depression_ever14 nqf_anxiety_ever14 diabetes_ever14 pid_ever14 {
+	capture drop `v'vhc
+	gen `v'vhc=.
+	replace `v'vhc=1 if `v'==1
+	replace `v'vhc=0 if `v'vhc==. & nconditions_14==0
+	}
+	
 tab	cv_disease_ever14 cv_disease_ever14vhc, miss
 	
 *code urban/rural/out of state variable
 
 
-replace eligible_14=0 if age_14>44
 save "$datadir/patient_complete_analytic_compressed.dta", replace
 /*
 use "$datadir/patient_complete_analytic_compressed.dta", clear
@@ -824,9 +937,7 @@ tab anyst_ep14_sum_id if eligible_14==1 & anyst_ep14_sum_id!=0, miss
 tab anyst_ep14_sum_id if eligible_14==1 & anyst_ep14_sum_id!=0 & larc_12mo_ep14_sum_id!=., miss
 tab anyst_ep14_sum_id if eligible_14==1 & anyst_ep14_sum_id!=0 & mo_arep_14_sum_id==12, miss
 
-mo_arep_1`x'_sum_id
 
-/*
 
 **Methods:
 *reasons ineligible in 2014
@@ -863,7 +974,7 @@ tab ineligible2_14, miss
 tab ineligible2_14 ineligible_14, miss
 
 gen total_14=.
-replace total_14=1 if ineligible2_14==.'
+replace total_14=1 if ineligible2_14==.
 tab1 total_14 eligible_14
 tab total_14 eligible_14, miss
 
@@ -927,7 +1038,6 @@ tab abortion_14 if total_14==1
 * Deliveries
 tab delivery_14 if total_14==1
 
-
 * Cardiovascular disease
 tab cv_disease_ever14 if total_14==1
 
@@ -963,69 +1073,58 @@ tab depression_ever14 if total_14==1
 
 *Multiple conditions
 tab nconditions_14 if total_14==1
- 
-
-
-
+*/
 
 *******************************************************************************
 * TABLE 1. PATIENT CHARACTERISTICS 
 *******************************************************************************
 
 * Average age
-sum age_13 if eligible_13==1
+*sum age_13 if eligible_13==1
 sum age_14 if eligible_14==1
 
 * Age
-tab age5_13 if eligible_13==1
+*tab age5_13 if eligible_13==1
 tab age5_14 if eligible_14==1
 
 * Average months enrolled 
-sum mo_e_13_sum_id if eligible_13==1
+*sum mo_e_13_sum_id if eligible_13==1
 sum mo_e_14_sum_id if eligible_14==1
 
 * Months enrolled 
-tab mo_e_13_sum_id if eligible_13==1
+*tab mo_e_13_sum_id if eligible_13==1
 tab mo_e_14_sum_id if eligible_14==1
 
 * Average months enrolled with pharmacy coverage
-sum mo_ep_13_sum_id if eligible_13==1
+*sum mo_ep_13_sum_id if eligible_13==1
 sum mo_ep_14_sum_id if eligible_14==1
 
 * Months enrolled with pharmacy coverage
-tab mo_ep_13_sum_id if eligible_13==1
+*tab mo_ep_13_sum_id if eligible_13==1
 tab mo_ep_14_sum_id if eligible_14==1
 
 * Coverage type
-tab covtypev2 if eligible_13==1
+*tab covtypev2 if eligible_13==1
 tab covtypev2 if eligible_14==1
 
 * Rurality / out of state (for Maryland residents)
-tab rucas2013 if eligible_13==1
+*tab rucas2013 if eligible_13==1
 tab rucas2014 if eligible_14==1
 
 * Median household income
-tab hhinc2013_5 if eligible_13==1
+*tab hhinc2013_5 if eligible_13==1
 tab hhinc2014_5 if eligible_14==1
 
-* Obesity
-tab obesity_ever13 if eligible_13==1
-tab obesity_ever14 if eligible_14==1
-
-
-
 * Smoking
-tab smoker_ever13 if eligible_13==1
+*tab smoker_ever13 if eligible_13==1
 tab smoker_ever14 if eligible_14==1
 
-
-
 * Abortions
-tab abortion_13 if eligible_13==1
+*tab abortion_13 if eligible_13==1
 tab abortion_14 if eligible_14==1
 
 * Deliveries
-tab delivery_13 if eligible_13==1
+*tab delivery_13 if eligible_13==1
 tab delivery_14 if eligible_14==1
 
 * Also create by medical conditions?
@@ -1035,47 +1134,55 @@ tab delivery_14 if eligible_14==1
 *******************************************************************************
 
 * Cardiovascular disease
-tab cv_disease_ever13 if eligible_13==1
+*tab cv_disease_ever13 if eligible_13==1
 tab cv_disease_ever14 if eligible_14==1
 
 * Cardiovascular risk
-tab cv_risk_ever13 if eligible_13==1
+*tab cv_risk_ever13 if eligible_13==1
 tab cv_risk_ever14 if eligible_14==1
 
 * Diabetes
-tab diabetes_ever13 if eligible_13==1
+*tab diabetes_ever13 if eligible_13==1
 tab diabetes_ever14 if eligible_14==1
 
 * Hypertension
-tab htn_ever13 if eligible_13==1
+*tab htn_ever13 if eligible_13==1
 tab htn_ever14 if eligible_14==1
 
+* Obesity
+*tab obesity_ever13 if eligible_13==1
+tab obesity_ever14 if eligible_14==1
+
+* Other cardiovascular risk
+*tab cvrisk_other_ever13 if eligible_13==1
+tab cvrisk_other_ever14 if eligible_14==1
+
 * VTE
-tab vte_ever13 if eligible_13==1
+*tab vte_ever13 if eligible_13==1
 tab vte_ever14 if eligible_14==1
 
 * PID
-tab pid_ever13 if eligible_13==1
+*tab pid_ever13 if eligible_13==1
 tab pid_ever14 if eligible_14==1
 
 *  Asthma
-tab asthma_ever13 if eligible_13==1
+*tab asthma_ever13 if eligible_13==1
 tab asthma_ever14 if eligible_14==1
 
 * Autoimmune condition
-tab autoimmune_ever13 if eligible_13==1
+*tab autoimmune_ever13 if eligible_13==1
 tab autoimmune_ever14 if eligible_14==1
 
 * Mental Health
-tab mental_ever13 if eligible_13==1
-tab mental_ever14 if eligible_14==1
+*tab mental_ever13 if eligible_13==1
+*tab mental_ever14 if eligible_14==1
 
 * Anxiety
-tab anxiety_ever13 if eligible_13==1
+*tab anxiety_ever13 if eligible_13==1
 tab anxiety_ever14 if eligible_14==1
 
 * Depression
-tab depression_ever13 if eligible_13==1
+*tab depression_ever13 if eligible_13==1
 tab depression_ever14 if eligible_14==1
 
 *Multiple conditions
@@ -1090,24 +1197,20 @@ tab nconditions_14 if eligible_14==1
 
 * Age
 	* Any use, including sterilization by age and year
-	tabstat anyst_ep13_sum_id if eligible_13==1, by(age5_13) statistics(sum)
+	*tabstat anyst_ep13_sum_id if eligible_13==1, by(age5_13) statistics(sum)
 	tabstat anyst_ep14_sum_id if eligible_14==1, by(age5_14) statistics(sum)
-*/
-	* Sterliziation by age and year
-	tabstat ster_ep14_sum_id if eligible_14==1, by(age5_14) statistics(sum)
-/*
-	
+
 	* Any non-LARC use by age and year
-	tabstat nonlarc_ep13_sum_id if eligible_13==1, by(age5_13) statistics(sum)
+	*tabstat nonlarc_ep13_sum_id if eligible_13==1, by(age5_13) statistics(sum)
 	tabstat nonlarc_ep14_sum_id if eligible_14==1, by(age5_14) statistics(sum)
 
 	* Any LARC use by age and year
-	tabstat larc_ep13_sum_id if eligible_13==1, by(age5_13) statistics(sum)
+	*tabstat larc_ep13_sum_id if eligible_13==1, by(age5_13) statistics(sum)
 	tabstat larc_ep14_sum_id if eligible_14==1, by(age5_14) statistics(sum)
 
 	* Any IUD use by age and year
 	tabstat iudall_ep14_sum_id if eligible_14==1, by(age5_14) statistics(sum)
-
+	/*
 	* Copper IUD use by age and year
 	tabstat cop_iud_c_ep13_sum_id if eligible_13==1, by(age5_13) statistics(sum)
 	tabstat cop_iud_c_ep14_sum_id if eligible_14==1, by(age5_14) statistics(sum)
@@ -1119,37 +1222,34 @@ tab nconditions_14 if eligible_14==1
 	* IUD (type undetermined) use by age and year
 	tabstat iud_c_ep13_sum_id if eligible_13==1, by(age5_13) statistics(sum)
 	tabstat iud_c_ep14_sum_id if eligible_14==1, by(age5_14) statistics(sum)
-
+	*/
 	* Implant use by age and year
-	tabstat implant_c_ep13_sum_id if eligible_13==1, by(age5_13) statistics(sum)
+	*tabstat implant_c_ep13_sum_id if eligible_13==1, by(age5_13) statistics(sum)
 	tabstat implant_c_ep14_sum_id if eligible_14==1, by(age5_14) statistics(sum)
 
+	* Sterliziation by age and year
+	tabstat ster_ep14_sum_id if eligible_14==1, by(age5_14) statistics(sum)
+	
 	* Total person-months enrolled by age and year
-	tabstat mo_arep_13_sum_id if eligible_13==1, by(age5_13) statistics(sum)
+	*tabstat mo_arep_13_sum_id if eligible_13==1, by(age5_13) statistics(sum)
 	tabstat mo_arep_14_sum_id if eligible_14==1, by(age5_14) statistics(sum)
 	
 * Coverage type covtypev2
 	* Any use including sterilization by coverage type and year
-	tabstat anyst_ep13_sum_id if eligible_13==1, by(covtypev2) statistics(sum)
+	*tabstat anyst_ep13_sum_id if eligible_13==1, by(covtypev2) statistics(sum)
 	tabstat anyst_ep14_sum_id if eligible_14==1, by(covtypev2) statistics(sum)
-
-*/
-	* Sterilization by coverage type and year
-	tabstat ster_ep14_sum_id if eligible_14==1, by(covtypev2) statistics(sum)
-/*
-
 	
 	* Any non-LARC use by coverage type and year
-	tabstat nonlarc_ep13_sum_id if eligible_13==1, by(covtypev2) statistics(sum)
+	*tabstat nonlarc_ep13_sum_id if eligible_13==1, by(covtypev2) statistics(sum)
 	tabstat nonlarc_ep14_sum_id if eligible_14==1, by(covtypev2) statistics(sum)
 
 	* Any LARC use by coverage type and year
-	tabstat larc_ep13_sum_id if eligible_13==1, by(covtypev2) statistics(sum)
+	*tabstat larc_ep13_sum_id if eligible_13==1, by(covtypev2) statistics(sum)
 	tabstat larc_ep14_sum_id if eligible_14==1, by(covtypev2) statistics(sum)
 
 	* Any IUD use by coverage type
 	tabstat iudall_ep14_sum_id if eligible_14==1, by(covtypev2) statistics(sum)
-
+	/*
 	* Copper IUD use by coverage type and year
 	tabstat cop_iud_c_ep13_sum_id if eligible_13==1, by(covtypev2) statistics(sum)
 	tabstat cop_iud_c_ep14_sum_id if eligible_14==1, by(covtypev2) statistics(sum)
@@ -1161,13 +1261,16 @@ tab nconditions_14 if eligible_14==1
 	* IUD (type undetermined) use by coverage type and year
 	tabstat iud_c_ep13_sum_id if eligible_13==1, by(covtypev2) statistics(sum)
 	tabstat iud_c_ep14_sum_id if eligible_14==1, by(covtypev2) statistics(sum)
-
+	*/
 	* Implant use by coverage type and year
-	tabstat implant_c_ep13_sum_id if eligible_13==1, by(covtypev2) statistics(sum)
+	*tabstat implant_c_ep13_sum_id if eligible_13==1, by(covtypev2) statistics(sum)
 	tabstat implant_c_ep14_sum_id if eligible_14==1, by(covtypev2) statistics(sum)
 
+	* Sterilization by coverage type and year
+	tabstat ster_ep14_sum_id if eligible_14==1, by(covtypev2) statistics(sum)
+
 	* Total person-months enrolled by coverage type and year
-	tabstat mo_arep_13_sum_id if eligible_13==1, by(covtypev2) statistics(sum)
+	*tabstat mo_arep_13_sum_id if eligible_13==1, by(covtypev2) statistics(sum)
 	tabstat mo_arep_14_sum_id if eligible_14==1, by(covtypev2) statistics(sum)
 	
 * Rurality
@@ -1176,8 +1279,6 @@ foreach me in anyst nonlarc larc iudall implant_c  {
 	tabstat `me'_ep14_sum_id if eligible_14==1, by(rucas2014) statistics(sum)
 	}
 
-	
-	
 	*/
 foreach me in ster  {
 	tabstat `me'_ep14_sum_id if eligible_14==1, by(rucas2014) statistics(sum)
@@ -1186,11 +1287,11 @@ foreach me in ster  {
 	
 tabstat mo_arep_13_sum_id if eligible_13==1, by(rucas2013) statistics(sum)
 tabstat mo_arep_14_sum_id if eligible_14==1, by(rucas2014) statistics(sum)
-
+	*/
 * Median household income
 
 
-foreach me in anyst nonlarc larc cop_iud_c horm_iud_c iud_c iudall implant_c  {
+foreach me in anyst nonlarc larc iudall implant_c  {
 	tabstat `me'_ep14_sum_id if eligible_14==1, by(hhinc2014_5) statistics(sum)
 	}
 
@@ -1202,10 +1303,11 @@ foreach me in ster  {
 	/*
 	
 tabstat mo_arep_14_sum_id if eligible_14==1, by(hhinc2014_5) statistics(sum)
-	
+	*/
 	
 * Medical conditions
-foreach mc in cv_disease_ever cv_risk_ever diabetes_ever htn_ever  obesity_ever vte_ever pid_ever ///
+
+foreach mc in cv_disease_ever cv_risk_ever diabetes_ever htn_ever obesity_ever cvrisk_other_ever vte_ever pid_ever ///
 	asthma_ever autoimmune_ever mental_ever depression_ever anxiety_ever nconditions_ {
 	foreach me in anyst nonlarc larc iudall implant_c {
 		tabstat `me'_ep14_sum_id if eligible_14==1, by(`mc'14) statistics(sum)
@@ -1214,25 +1316,25 @@ foreach mc in cv_disease_ever cv_risk_ever diabetes_ever htn_ever  obesity_ever 
 	}
 */
 
-foreach mc in cv_disease_ever cv_risk_ever diabetes_ever htn_ever  obesity_ever vte_ever pid_ever ///
+foreach mc in cv_disease_ever cv_risk_ever diabetes_ever htn_ever obesity_ever cvrisk_other_ever vte_ever pid_ever ///
 	asthma_ever autoimmune_ever mental_ever depression_ever anxiety_ever nconditions_ {
 	foreach me in ster {
 		tabstat `me'_ep14_sum_id if eligible_14==1, by(`mc'14) statistics(sum)
 		}
 	}
-/*
 
+* Number of conditions
+foreach me in anyst nonlarc larc iudall implant_c ster {
+	tabstat `me'_ep14_sum_id if eligible_14==1, by(nconditions_14) statistics(sum)
+	}
 	
 * Total
-
 foreach me in anyst nonlarc larc iudall implant_c {
 	tabstat `me'_ep14_sum_id if eligible_14==1, statistics(sum)
 	}
 	
 tabstat mo_arep_14_sum_id if eligible_14==1, statistics(sum)
 	
-
-
 *******************************************************************************
 * TABLE 4. WOMAN-LEVEL CONTRACEPTIVE MEASURES
 *******************************************************************************
@@ -1274,12 +1376,10 @@ foreach y in anyst_1mo_ep14_sum_id any_1mo_ep14_sum_id larc_1mo_ep14_sum_id larc
 		}
 	logistic `y' hhinc2014_5 if  eligible_14==1
 	}
-
-
+	
 capture log close
 log using "logs\MHCC_BayerPatientAnalysis_Complete_INTERACTION_TABLES_$S_DATE.log", replace
 
-	
 *******************************************************************************
 * TABLE 5a. BIVARIABLE MODELS -- interaction by age
 *******************************************************************************
@@ -1289,7 +1389,6 @@ tab age5_14, nolab
 capture drop age35to44
 recode age5_14 (0/3=0) (4/5=1), gen(age35to44)
 tab age5_14 age35to44, miss
-
 
 
 foreach y in anyst_1mo_ep14_sum_id larc_1mo_ep14_sum_id larc_12mo_ep14_sum_id {
@@ -1304,9 +1403,7 @@ foreach y in anyst_1mo_ep14_sum_id larc_1mo_ep14_sum_id larc_12mo_ep14_sum_id {
 	lincom 2.nconditions_14 + 2.nconditions_14#1.age34to44
 	}
 	
-
-
-
+/*
 *******************************************************************************
 * TABLE 5a. BIVARIABLE MODELS versus "healthy" cohort
 *******************************************************************************
@@ -1323,7 +1420,6 @@ foreach y in anyst_1mo_ep14_sum_id larc_1mo_ep14_sum_id larc_12mo_ep14_sum_id {
 * TABLE 6. MULTIVARIABLE MODELS
 *******************************************************************************
 
-
 foreach y in anyst_1mo_ep14_sum_id any_1mo_ep14_sum_id larc_1mo_ep14_sum_id larc_12mo_ep14_sum_id {
 	foreach x in cv_disease_ever14 cv_risk_ever14 ///
 		diabetes_ever14 htn_ever14 obesity_ever14 vte_ever14 pid_ever14 ///
@@ -1337,7 +1433,6 @@ foreach y in anyst_1mo_ep14_sum_id any_1mo_ep14_sum_id larc_1mo_ep14_sum_id larc
 * TABLE 6b. MULTIVARIABLE MODELS versus "healthy" cohort
 *******************************************************************************
 
-
 foreach y in anyst_1mo_ep14_sum_id any_1mo_ep14_sum_id larc_1mo_ep14_sum_id larc_12mo_ep14_sum_id {
 	foreach x in cv_disease_ever14 cv_risk_ever14 ///
 		diabetes_ever14 htn_ever14 obesity_ever14 vte_ever14 pid_ever14 ///
@@ -1349,11 +1444,10 @@ foreach y in anyst_1mo_ep14_sum_id any_1mo_ep14_sum_id larc_1mo_ep14_sum_id larc
 
 
 */	
-	*******************************************************************************
+*******************************************************************************
 * TABLE 5a. MULTIVARIABLE MODELS -- interaction by age
 *******************************************************************************
-	
-	
+/*	
 tab age5_14
 tab age5_14, nolab
 capture drop age35to44
@@ -1380,7 +1474,6 @@ foreach y in anyst_1mo_ep14_sum_id any_1mo_ep14_sum_id larc_1mo_ep14_sum_id larc
 * TABLE 7. FACILITY CHARCTERISTICS
 *******************************************************************************
 
-
 tab y2014_mpp_size if y2014_counter==1 & y2014_mpp_npi!="" & eligible_14==1
 
 sum y2014_mpp_size if y2014_counter==1 & y2014_mpp_npi!="" & eligible_14==1
@@ -1396,11 +1489,6 @@ tab y2014_mpp_classification if y2014_counter==1 & y2014_mppc==9 & eligible_14==
 tab y2014_mpp_classification if y2014_counter==1 & y2014_mppc==10 & eligible_14==1
 	
 
-
-
-
-
-	
 *******************************************************************************
 * TABLE 4. WOMAN-LEVEL CONTRACEPTIVE MEASURES BY FACILITY CHARACTERISTICS
 *******************************************************************************
@@ -1496,7 +1584,6 @@ sum hhinc2014 if hhinc2014_5==4
 sum hhinc2014 if hhinc2014_5==5
 
 */
-
 
 *******************************************************************************
 * SANDBOX
