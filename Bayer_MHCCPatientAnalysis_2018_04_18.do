@@ -1082,116 +1082,90 @@ tab nqf_nconditions_14 if total_14==1
 * TABLE 1. PATIENT CHARACTERISTICS 
 *******************************************************************************
 
+* Run code with original eligiblility, eligibility_14 (at risk of pregnancy, 6 months continuous
+	* enrollment, 1 month pharmacy coverage) or NQF eligibility, eligibility_14v2 (at risk of 
+	* pregnancy, 12 months enrollment, 12 months pharmacy coverage)	
+	foreach var in eligible_14 {
+
 * Average age
-*sum age_13 if eligible_13==1
-sum age_14 if eligible_14==1
+sum age_14 if `var'==1
 
 * Age
-*tab age5_13 if eligible_13==1
-tab age5_14 if eligible_14==1
+tab age5_14 if `var'==1
 
 * Average months enrolled 
-*sum mo_e_13_sum_id if eligible_13==1
-sum mo_e_14_sum_id if eligible_14==1
+sum mo_e_14_sum_id if `var'==1
 
 * Months enrolled 
-*tab mo_e_13_sum_id if eligible_13==1
-tab mo_e_14_sum_id if eligible_14==1
+tab mo_e_14_sum_id if `var'==1
 
 * Average months enrolled with pharmacy coverage
-*sum mo_ep_13_sum_id if eligible_13==1
-sum mo_ep_14_sum_id if eligible_14==1
+sum mo_ep_14_sum_id if `var'==1
 
 * Months enrolled with pharmacy coverage
-*tab mo_ep_13_sum_id if eligible_13==1
-tab mo_ep_14_sum_id if eligible_14==1
+tab mo_ep_14_sum_id if `var'==1
 
 * Coverage type
-*tab covtypev2 if eligible_13==1
-tab covtypev2 if eligible_14==1
+tab covtypev2 if `var'==1
 
 * Rurality / out of state (for Maryland residents)
-*tab rucas2013 if eligible_13==1
-tab rucas2014 if eligible_14==1
+tab rucas2014 if `var'==1
 
 * Median household income
-*tab hhinc2013_5 if eligible_13==1
-tab hhinc2014_5 if eligible_14==1
+tab hhinc2014_5 if `var'==1
 
 * Smoking
-*tab smoker_ever13 if eligible_13==1
-tab smoker_ever14 if eligible_14==1
+tab smoker_ever14 if `var'==1
 
 * Abortions
-*tab abortion_13 if eligible_13==1
-tab abortion_14 if eligible_14==1
+tab abortion_14 if `var'==1
 
 * Deliveries
-*tab delivery_13 if eligible_13==1
-tab delivery_14 if eligible_14==1
-
-* Also create by medical conditions?
+tab delivery_14 if `var'==1
 
 *******************************************************************************
 * TABLE. MEDICAL CONDITIONS 
 *******************************************************************************
 
 * Cardiovascular disease
-*tab cv_disease_ever13 if eligible_13==1
-tab cv_disease_ever14 if eligible_14==1
+tab cv_disease_ever14 if `var'==1
 
 * Cardiovascular risk
-*tab cv_risk_ever13 if eligible_13==1
-tab cv_risk_ever14 if eligible_14==1
+tab cv_risk_ever14 if `var'==1
 
 * Diabetes
-*tab diabetes_ever13 if eligible_13==1
-tab diabetes_ever14 if eligible_14==1
+tab diabetes_ever14 if `var'==1
 
 * Hypertension
-*tab htn_ever13 if eligible_13==1
-tab htn_ever14 if eligible_14==1
+tab htn_ever14 if `var'==1
 
 * Obesity
-*tab obesity_ever13 if eligible_13==1
-tab obesity_ever14 if eligible_14==1
+tab obesity_ever14 if `var'==1
 
 * Other cardiovascular risk
-*tab cvrisk_other_ever13 if eligible_13==1
-tab cvrisk_other_ever14 if eligible_14==1
+tab cvrisk_other_ever14 if `var'==1
 
 * VTE
-*tab vte_ever13 if eligible_13==1
-tab vte_ever14 if eligible_14==1
+tab vte_ever14 if `var'==1
 
 * PID
-*tab pid_ever13 if eligible_13==1
-tab pid_ever14 if eligible_14==1
+tab pid_ever14 if `var'==1
 
 *  Asthma
-*tab asthma_ever13 if eligible_13==1
-tab asthma_ever14 if eligible_14==1
+tab asthma_ever14 if `var'==1
 
 * Autoimmune condition
-*tab autoimmune_ever13 if eligible_13==1
-tab autoimmune_ever14 if eligible_14==1
-
-* Mental Health
-*tab mental_ever13 if eligible_13==1
-*tab mental_ever14 if eligible_14==1
+tab autoimmune_ever14 if `var'==1
 
 * Anxiety
-*tab anxiety_ever13 if eligible_13==1
-tab anxiety_ever14 if eligible_14==1
+tab anxiety_ever14 if `var'==1
 
 * Depression
-*tab depression_ever13 if eligible_13==1
-tab depression_ever14 if eligible_14==1
+tab depression_ever14 if `var'==1
 
 * Multiple conditions
-tab nqf_nconditions_14 if eligible_14==1
+tab nqf_nconditions_14 if `var'==1
  
-
 *******************************************************************************
 * TABLE 3. CONTRACEPIVE USE 
 *******************************************************************************
@@ -1200,140 +1174,91 @@ tab nqf_nconditions_14 if eligible_14==1
 
 * Age
 	* Any use, including sterilization by age and year
-	*tabstat anyst_ep13_sum_id if eligible_13==1, by(age5_13) statistics(sum)
-	tabstat anyst_ep14_sum_id if eligible_14==1, by(age5_14) statistics(sum)
+	tabstat anyst_ep14_sum_id if `var'==1, by(age5_14) statistics(sum)
 
 	* Any non-LARC use by age and year
-	*tabstat nonlarc_ep13_sum_id if eligible_13==1, by(age5_13) statistics(sum)
-	tabstat nonlarc_ep14_sum_id if eligible_14==1, by(age5_14) statistics(sum)
+	tabstat nonlarc_ep14_sum_id if `var'==1, by(age5_14) statistics(sum)
 
 	* Any LARC use by age and year
-	*tabstat larc_ep13_sum_id if eligible_13==1, by(age5_13) statistics(sum)
-	tabstat larc_ep14_sum_id if eligible_14==1, by(age5_14) statistics(sum)
+	tabstat larc_ep14_sum_id if `var'==1, by(age5_14) statistics(sum)
 
 	* Any IUD use by age and year
-	tabstat iudall_ep14_sum_id if eligible_14==1, by(age5_14) statistics(sum)
-	/*
-	* Copper IUD use by age and year
-	tabstat cop_iud_c_ep13_sum_id if eligible_13==1, by(age5_13) statistics(sum)
-	tabstat cop_iud_c_ep14_sum_id if eligible_14==1, by(age5_14) statistics(sum)
+	tabstat iudall_ep14_sum_id if `var'==1, by(age5_14) statistics(sum)
 
-	* Hormonal IUD use by age and year
-	tabstat horm_iud_c_ep13_sum_id if eligible_13==1, by(age5_13) statistics(sum)
-	tabstat horm_iud_c_ep14_sum_id if eligible_14==1, by(age5_14) statistics(sum)
-
-	* IUD (type undetermined) use by age and year
-	tabstat iud_c_ep13_sum_id if eligible_13==1, by(age5_13) statistics(sum)
-	tabstat iud_c_ep14_sum_id if eligible_14==1, by(age5_14) statistics(sum)
-	*/
 	* Implant use by age and year
-	*tabstat implant_c_ep13_sum_id if eligible_13==1, by(age5_13) statistics(sum)
-	tabstat implant_c_ep14_sum_id if eligible_14==1, by(age5_14) statistics(sum)
+	tabstat implant_c_ep14_sum_id if `var'==1, by(age5_14) statistics(sum)
 
 	* Sterliziation by age and year
-	tabstat ster_ep14_sum_id if eligible_14==1, by(age5_14) statistics(sum)
+	tabstat ster_ep14_sum_id if `var'==1, by(age5_14) statistics(sum)
 	
 	* Total person-months enrolled by age and year
-	*tabstat mo_arep_13_sum_id if eligible_13==1, by(age5_13) statistics(sum)
-	tabstat mo_arep_14_sum_id if eligible_14==1, by(age5_14) statistics(sum)
+	tabstat mo_arep_14_sum_id if `var'==1, by(age5_14) statistics(sum)
 	
 * Coverage type covtypev2
 	* Any use including sterilization by coverage type and year
-	*tabstat anyst_ep13_sum_id if eligible_13==1, by(covtypev2) statistics(sum)
-	tabstat anyst_ep14_sum_id if eligible_14==1, by(covtypev2) statistics(sum)
+	tabstat anyst_ep14_sum_id if `var'==1, by(covtypev2) statistics(sum)
 	
 	* Any non-LARC use by coverage type and year
-	*tabstat nonlarc_ep13_sum_id if eligible_13==1, by(covtypev2) statistics(sum)
-	tabstat nonlarc_ep14_sum_id if eligible_14==1, by(covtypev2) statistics(sum)
+	tabstat nonlarc_ep14_sum_id if `var'==1, by(covtypev2) statistics(sum)
 
 	* Any LARC use by coverage type and year
-	*tabstat larc_ep13_sum_id if eligible_13==1, by(covtypev2) statistics(sum)
-	tabstat larc_ep14_sum_id if eligible_14==1, by(covtypev2) statistics(sum)
+	tabstat larc_ep14_sum_id if `var'==1, by(covtypev2) statistics(sum)
 
 	* Any IUD use by coverage type
-	tabstat iudall_ep14_sum_id if eligible_14==1, by(covtypev2) statistics(sum)
-	/*
-	* Copper IUD use by coverage type and year
-	tabstat cop_iud_c_ep13_sum_id if eligible_13==1, by(covtypev2) statistics(sum)
-	tabstat cop_iud_c_ep14_sum_id if eligible_14==1, by(covtypev2) statistics(sum)
+	tabstat iudall_ep14_sum_id if `var'==1, by(covtypev2) statistics(sum)
 
-	* Hormonal IUD use by coverage type and year
-	tabstat horm_iud_c_ep13_sum_id if eligible_13==1, by(covtypev2) statistics(sum)
-	tabstat horm_iud_c_ep14_sum_id if eligible_14==1, by(covtypev2) statistics(sum)
-
-	* IUD (type undetermined) use by coverage type and year
-	tabstat iud_c_ep13_sum_id if eligible_13==1, by(covtypev2) statistics(sum)
-	tabstat iud_c_ep14_sum_id if eligible_14==1, by(covtypev2) statistics(sum)
-	*/
 	* Implant use by coverage type and year
-	*tabstat implant_c_ep13_sum_id if eligible_13==1, by(covtypev2) statistics(sum)
-	tabstat implant_c_ep14_sum_id if eligible_14==1, by(covtypev2) statistics(sum)
+	tabstat implant_c_ep14_sum_id if `var'==1, by(covtypev2) statistics(sum)
 
 	* Sterilization by coverage type and year
-	tabstat ster_ep14_sum_id if eligible_14==1, by(covtypev2) statistics(sum)
+	tabstat ster_ep14_sum_id if `var'==1, by(covtypev2) statistics(sum)
 
 	* Total person-months enrolled by coverage type and year
-	*tabstat mo_arep_13_sum_id if eligible_13==1, by(covtypev2) statistics(sum)
-	tabstat mo_arep_14_sum_id if eligible_14==1, by(covtypev2) statistics(sum)
+	tabstat mo_arep_14_sum_id if `var'==1, by(covtypev2) statistics(sum)
 	
 * Rurality
 foreach me in anyst nonlarc larc iudall implant_c  {
-	tabstat `me'_ep14_sum_id if eligible_14==1, by(rucas2014) statistics(sum)
+	tabstat `me'_ep14_sum_id if `var'==1, by(rucas2014) statistics(sum)
 	}
 
 	*/
 foreach me in ster  {
-	tabstat `me'_ep14_sum_id if eligible_14==1, by(rucas2014) statistics(sum)
+	tabstat `me'_ep14_sum_id if `var'==1, by(rucas2014) statistics(sum)
 	}
-	/*
-	
-tabstat mo_arep_13_sum_id if eligible_13==1, by(rucas2013) statistics(sum)
-tabstat mo_arep_14_sum_id if eligible_14==1, by(rucas2014) statistics(sum)
-	*/
-	
+
 * Median household income
-foreach me in anyst nonlarc larc iudall implant_c  {
-	tabstat `me'_ep14_sum_id if eligible_14==1, by(hhinc2014_5) statistics(sum)
+foreach me in anyst nonlarc larc iudall implant_c ster {
+	tabstat `me'_ep14_sum_id if `var'==1, by(hhinc2014_5) statistics(sum)
 	}
-
-	*/
-foreach me in ster  {
-	tabstat `me'_ep14_sum_id if eligible_14==1, by(hhinc2014_5) statistics(sum)
-	}	
-	
-	/*
-	
-tabstat mo_arep_14_sum_id if eligible_14==1, by(hhinc2014_5) statistics(sum)
-	*/
 	
 * Medical conditions
 foreach mc in cv_disease_ever cv_risk_ever diabetes_ever htn_ever obesity_ever cvrisk_other_ever vte_ever pid_ever ///
 	asthma_ever autoimmune_ever mental_ever depression_ever anxiety_ever nqf_nconditions_ {
 	foreach me in anyst nonlarc larc iudall implant_c {
-		tabstat `me'_ep14_sum_id if eligible_14==1, by(`mc'14) statistics(sum)
+		tabstat `me'_ep14_sum_id if `var'==1, by(`mc'14) statistics(sum)
 		}
-		tabstat mo_arep_14_sum_id if eligible_14==1, by(`mc'14) statistics(sum)
+		tabstat mo_arep_14_sum_id if `var'==1, by(`mc'14) statistics(sum)
 	}
 */
 
 foreach mc in cv_disease_ever cv_risk_ever diabetes_ever htn_ever obesity_ever cvrisk_other_ever vte_ever pid_ever ///
 	asthma_ever autoimmune_ever mental_ever depression_ever anxiety_ever nqf_nconditions_ {
 	foreach me in ster {
-		tabstat `me'_ep14_sum_id if eligible_14==1, by(`mc'14) statistics(sum)
+		tabstat `me'_ep14_sum_id if `var'==1, by(`mc'14) statistics(sum)
 		}
 	}
 
 * Number of conditions
 foreach me in anyst nonlarc larc iudall implant_c ster {
-	tabstat `me'_ep14_sum_id if eligible_14==1, by(nqf_nconditions_14) statistics(sum)
+	tabstat `me'_ep14_sum_id if `var'==1, by(nqf_nconditions_14) statistics(sum)
 	}
 	
 * Total
 foreach me in anyst nonlarc larc iudall implant_c {
-	tabstat `me'_ep14_sum_id if eligible_14==1, statistics(sum)
+	tabstat `me'_ep14_sum_id if `var'==1, statistics(sum)
 	}
 	
-tabstat mo_arep_14_sum_id if eligible_14==1, statistics(sum)
+tabstat mo_arep_14_sum_id if `var'==1, statistics(sum)
 	
 *******************************************************************************
 * TABLE 4. WOMAN-LEVEL CONTRACEPTIVE MEASURES
@@ -1342,24 +1267,24 @@ tabstat mo_arep_14_sum_id if eligible_14==1, statistics(sum)
 set more off
 
 foreach v in anyst_1mo_ep14_sum_id any_1mo_ep14_sum_id larc_1mo_ep14_sum_id	larc_12mo_ep14_sum_id {	
-	*2014
-	tab age5_14 `v' if eligible_14==1 , row chi2 nokey
-	tab covtypev2 `v' if eligible_14==1 , row chi2 nokey
-	tab rucas2014 `v' if eligible_14==1 , row chi2 nokey
-	tab hhinc2014_5 `v' if eligible_14==1 , row chi2 nokey
-	tab cv_disease_ever14 `v' if eligible_14==1 , row chi2 nokey
-	tab cv_risk_ever14 `v' if eligible_14==1 , row chi2 nokey
-	tab diabetes_ever14 `v' if eligible_14==1 , row chi2 nokey
-	tab htn_ever14 `v' if eligible_14==1 , row chi2 nokey
-	tab obesity_ever14 `v' if eligible_14==1 , row chi2 nokey
-	tab vte_ever14 `v' if eligible_14==1 , row chi2 nokey
-	tab pid_ever14 `v' if eligible_14==1 , row chi2 nokey	
-	tab asthma_ever14 `v' if eligible_14==1 , row chi2 nokey
-	tab autoimmune_ever14 `v' if eligible_14==1 , row chi2 nokey
-	tab depression_ever14 `v' if eligible_14==1 , row chi2 nokey	
-	tab anxiety_ever14 `v' if eligible_14==1 , row chi2 nokey	
-	tab nqf_nconditions_14 `v' if eligible_14==1 , row chi2 nokey
-	tab `v'  if eligible_14==1 
+	* 2014
+	tab age5_14 `v' if `var'==1 , row chi2 nokey
+	tab covtypev2 `v' if `var'==1 , row chi2 nokey
+	tab rucas2014 `v' if `var'==1 , row chi2 nokey
+	tab hhinc2014_5 `v' if `var'==1 , row chi2 nokey
+	tab cv_disease_ever14 `v' if `var'==1 , row chi2 nokey
+	tab cv_risk_ever14 `v' if `var'==1 , row chi2 nokey
+	tab diabetes_ever14 `v' if `var'==1 , row chi2 nokey
+	tab htn_ever14 `v' if `var'==1 , row chi2 nokey
+	tab obesity_ever14 `v' if `var'==1 , row chi2 nokey
+	tab vte_ever14 `v' if `var'==1 , row chi2 nokey
+	tab pid_ever14 `v' if `var'==1 , row chi2 nokey	
+	tab asthma_ever14 `v' if `var'==1 , row chi2 nokey
+	tab autoimmune_ever14 `v' if `var'==1 , row chi2 nokey
+	tab depression_ever14 `v' if `var'==1 , row chi2 nokey	
+	tab anxiety_ever14 `v' if `var'==1 , row chi2 nokey	
+	tab nqf_nconditions_14 `v' if `var'==1 , row chi2 nokey
+	tab `v'  if `var'==1 
 	}
 
 	
@@ -1368,15 +1293,15 @@ foreach v in anyst_1mo_ep14_sum_id any_1mo_ep14_sum_id larc_1mo_ep14_sum_id	larc
 *******************************************************************************
 	
 foreach y in anyst_1mo_ep14_sum_id any_1mo_ep14_sum_id larc_1mo_ep14_sum_id larc_12mo_ep14_sum_id {
-	logistic `y' b2.age5_14 if  eligible_14==1
+	logistic `y' b2.age5_14 if `var'==1
 	foreach x in age5_14 covtypev2 rucas2014 hhinc2014_5 cv_disease_ever14 cv_risk_ever14 ///
 		diabetes_ever14 htn_ever14 obesity_ever14 vte_ever14 pid_ever14 ///
 		asthma_ever14 autoimmune_ever14 depression_ever14 anxiety_ever14 nqf_nconditions_14 {
-		logistic `y' i.`x' if  eligible_14==1
+		logistic `y' i.`x' if `var'==1
 		}
-	logistic `y' hhinc2014_5 if  eligible_14==1
+	logistic `y' hhinc2014_5 if `var'==1
 	}
-	
+}	
 capture log close
 log using "logs\MHCC_BayerPatientAnalysis_Complete_INTERACTION_TABLES_$S_DATE.log", replace
 
@@ -1390,19 +1315,19 @@ capture drop age35to44
 recode age5_14 (0/3=0) (4/5=1), gen(age35to44)
 tab age5_14 age35to44, miss
 
-
+foreach var in eligible_14 {
 foreach y in anyst_1mo_ep14_sum_id larc_1mo_ep14_sum_id larc_12mo_ep14_sum_id {
 	foreach x in cv_disease_ever14 cv_risk_ever14 ///
 		diabetes_ever14 htn_ever14 obesity_ever14 vte_ever14 pid_ever14 ///
 		asthma_ever14 autoimmune_ever14 depression_ever14 anxiety_ever14{
-		logistic `y' i.`x'##age34to44 if  eligible_14==1
+		logistic `y' i.`x'##age34to44 if `var'==1
 		lincom 1.`x' + 1.`x'#1.age34to44
 		}
-	logistic `y' i.nqf_nconditions_14##age34to44 if  eligible_14==1
+	logistic `y' i.nqf_nconditions_14##age34to44 if `var'==1
 	lincom 1.nqf_nconditions_14 + 1.nqf_nconditions_14#1.age34to44
 	lincom 2.nqf_nconditions_14 + 2.nqf_nconditions_14#1.age34to44
 	}
-	
+}	
 /*
 *******************************************************************************
 * TABLE 5a. BIVARIABLE MODELS versus "healthy" cohort
